@@ -1,6 +1,8 @@
 #include "CImg.h"
+#include <iostream>
 
 using namespace cimg_library;
+using namespace std;
 
 int clamp(int val,int bornInf,int bornSup){
   return (val<bornInf)?bornInf:(val>bornSup)?bornSup:val;
@@ -13,6 +15,18 @@ void Seuil(CImg<> imgInit,CImg<>* imgTrait,int seuil,int* dim){
       for(int k=0;k<dim[2];k++){
         int valAct = (imgInit(i,j,k)>seuil)?imgInit(i,j,k):0;
         (*imgTrait)(i,j,k) = (valAct-seuil)*255/(valMax-seuil);
+        //fprintf(stderr,"seuil %d et valMax %d\n",seuil,valMax);
+      }
+    }
+  }
+}
+
+void CopyImg(CImg<> imgInit,CImg<>* imgTrait,int* dim){
+  int valMax = imgInit.max();
+  for(int i=0;i<dim[0];i++){
+    for(int j=0;j<dim[1];j++){
+      for(int k=0;k<dim[2];k++){
+        (*imgTrait)(i,j,k) = (imgInit)(i,j,k);
         //fprintf(stderr,"seuil %d et valMax %d\n",seuil,valMax);
       }
     }
@@ -47,7 +61,7 @@ int main(int argc, char *argv[])
   }
 
   sscanf (argv[1],"%s",cfichierlu);
-  CImg<> imgInit,imgTrait, imgAffiche;
+  CImg<> imgInit, imgTrait, imgAffiche;
   float voxelsize[3];
 
   imgInit.load_analyze(cfichierlu, voxelsize);
@@ -62,6 +76,12 @@ int main(int argc, char *argv[])
 
   pretraitement(imgInit,&imgTrait,&display,&seuil,dim);
 
+  int clicX, clicY, clicZ;
+  float Cx = (float) dim[0] / (float) display.width();
+  float Cy = (float) dim[1] / (float) display.height();
+
+  const unsigned char gray[] = {255};
+  CopyImg(imgTrait,&imgInit,dim);
  	while(!display.is_closed())
  	{
     	if (display.is_keyESC())
@@ -76,7 +96,16 @@ int main(int argc, char *argv[])
           display.set_wheel();
     	}
 
-    	imgAffiche = imgTrait.get_slice(numeroImage);
+      if (display.button()&1)
+      {
+        clicX = display.mouse_x() * Cx;
+        clicY = display.mouse_y() * Cy;
+        clicZ = numeroImage;
+        cout << clicX << " " << clicY << " " << clicZ << endl;
+        imgTrait.draw_fill(clicX, clicY, clicZ, gray, 1.0, imgInit, 15.0, true);
+      }
+
+    	imgAffiche = imgInit.get_slice(numeroImage);
     	display.display(imgAffiche);
   		display.wait();
     }
