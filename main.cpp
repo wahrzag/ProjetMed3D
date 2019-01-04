@@ -68,12 +68,12 @@ void regionGrowing(CImg<> imgInit, CImg<>* imgTrait, vector<int> seedPoint, bool
 {
 	vector< vector<int> > region;
 	region.push_back(seedPoint);
-	float threshold = 20.f;
+	float threshold = 5.f;
 
 	for(int i = 0; i < region.size(); i++)
 	{
 		vector<int> voisin1 = {region[i][0]-1, region[i][1], region[i][2]};
-		vector<int> voisin2 = {region[i][0]-1, region[i][1], region[i][2]};
+		vector<int> voisin2 = {region[i][0]+1, region[i][1], region[i][2]};
 		vector<int> voisin3 = {region[i][0], region[i][1]-1, region[i][2]};
 		vector<int> voisin4 = {region[i][0], region[i][1]+1, region[i][2]};
 		vector<int> voisin5 = {region[i][0], region[i][1], region[i][2]-1};
