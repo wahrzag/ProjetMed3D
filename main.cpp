@@ -85,11 +85,10 @@ void pretraitement(CImg<> imgInit, CImg<>* imgTrait, CImgDisplay* display, int* 
   	}
 }
 
-void regionGrowing(CImg<> imgInit, CImg<>* imgTrait, vector<int> seedPoint, bool* fini)
+void regionGrowing(CImg<> imgInit, CImg<>* imgTrait, vector<int> seedPoint,int* threshold)
 {
 	vector< vector<int> > region;
 	region.push_back(seedPoint);
-	float threshold = 5.f;
 
 	for(int i = 0; i < region.size(); i++)
 	{
@@ -107,7 +106,7 @@ void regionGrowing(CImg<> imgInit, CImg<>* imgTrait, vector<int> seedPoint, bool
 			if((*imgTrait)(voisins[j][0], voisins[j][1], voisins[j][2]) == 0)
 			{
 					float distance = (float) sqrt(pow((imgInit(voisins[j][0], voisins[j][1], voisins[j][2]) - imgInit(seedPoint[0], seedPoint[1], seedPoint[2])), 2)); //imgInit(region[i][0], region[i][1], region[i][2])), 2));
-					if(distance <= threshold)
+					if(distance <= *threshold)
 					{
 						region.push_back(voisins[j]);
 						(*imgTrait)(voisins[j][0], voisins[j][1], voisins[j][2]) = 255;
@@ -117,7 +116,7 @@ void regionGrowing(CImg<> imgInit, CImg<>* imgTrait, vector<int> seedPoint, bool
 	}
 
 	cout << "fini" << endl;
-	(*fini) = true;
+	//(*fini) = true;
 }
 
 void regionGrowingRec(CImg<> imgInit,CImg<>* labels,int* dim,int* seedPoint,int* threshold,int label){
@@ -131,7 +130,8 @@ void regionGrowingRec(CImg<> imgInit,CImg<>* labels,int* dim,int* seedPoint,int*
     {
       for(k=-1;k<=1;k++)
       { 
-        if((*labels)(seedPoint[0]+i,seedPoint[1]+j,seedPoint[2]+k) == NALDYDONE && distanceInt(imgInit(seedPoint[0],seedPoint[1],seedPoint[2]),imgInit(seedPoint[0]+i,seedPoint[1]+j,seedPoint[2]+k))<*threshold){
+        bool todo = ((i>0)?i:-i + (j>0)?j:-j + (k>0)?k:-k) == 1;
+        if(todo && (*labels)(seedPoint[0]+i,seedPoint[1]+j,seedPoint[2]+k) == NALDYDONE && distanceInt(imgInit(seedPoint[0],seedPoint[1],seedPoint[2]),imgInit(seedPoint[0]+i,seedPoint[1]+j,seedPoint[2]+k))<*threshold){
           int newSeed[3] = {seedPoint[0]+i,seedPoint[1]+j,seedPoint[2]+k};
           regionGrowingRec(imgInit,labels,dim,newSeed,threshold,label);
         }
@@ -175,9 +175,8 @@ void PaintWithLabels(CImg<> imgInit,CImg<>* imgTrait,CImg<> labels,int* dim){
   fprintf(stderr,"nb voxels : %d\n",count);
 }
 
-void firstContact(CImg<> imgInit, CImg<>* labels, CImgDisplay* display,int* dim,int* threshold){
-  regionGrowingPreT(imgInit,labels,dim);
-  fprintf(stderr,"Debut du region growing\n");
+void firstContact(CImg<> imgInit, CImg<>* imgTrait, CImgDisplay* display,int* dim,int* threshold){
+  remiseAZero(imgTrait,dim);
   int numeroImage=dim[2]/2;
   int clicX, clicY, clicZ;
   float Cx = (float) dim[0] / (float) (*display).width();
@@ -196,19 +195,22 @@ void firstContact(CImg<> imgInit, CImg<>* labels, CImgDisplay* display,int* dim,
           (*display).set_wheel();
       }
       if ((*display).button()&1)
-      {
+      { 
+        fprintf(stderr,"Debut du region growing\n");
         clicX = (*display).mouse_x() * Cx;
         clicY = (*display).mouse_y() * Cy;
         clicZ = numeroImage;
-        int seed[3] = {clicX, clicY, clicZ};
-        regionGrowingRec(imgInit, labels, dim,seed,threshold,1);
+        //int seed[3] = {clicX, clicY, clicZ};
+        vector<int> seed = {clicX, clicY, clicZ};
+        regionGrowing(imgInit, imgTrait, seed,threshold);
+        fprintf(stderr,"Fin du region growing\n");
+        //regionGrowingRec(imgInit, labels, dim,seed,threshold,1);
         return;
       }
       CImg<> imgAffiche = imgInit.get_slice(numeroImage);
       (*display).display(imgAffiche);
       (*display).wait();
     }
-    fprintf(stderr,"Fin du region growing\n");
 }
 
 int main(int argc, char *argv[])
@@ -242,8 +244,8 @@ int main(int argc, char *argv[])
 
   CopyImg(imgTrait,&imgInit,dim);
   int threshold = 5;
-  firstContact(imgInit,&labels,&display,dim,&threshold);
-  PaintWithLabels(imgInit,&imgTrait,labels,dim);
+  firstContact(imgInit,&imgTrait,&display,dim,&threshold);
+  //PaintWithLabels(imgInit,&imgTrait,labels,dim);
 
   /*bool testFini = false;
 
