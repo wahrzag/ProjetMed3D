@@ -92,6 +92,43 @@ void regionGrowing(CImg<> imgInit, CImg<>* imgTrait, vector<int> seedPoint, int*
 
 	for(int i = 0; i < region.size(); i++)
 	{
+		if((*imgTrait)(region[i][0], region[i][1], region[i][2]) != 255)
+		{
+			vector<int> voisin1 = {region[i][0]-1, region[i][1], region[i][2]};
+			vector<int> voisin2 = {region[i][0]+1, region[i][1], region[i][2]};
+			vector<int> voisin3 = {region[i][0], region[i][1]-1, region[i][2]};
+			vector<int> voisin4 = {region[i][0], region[i][1]+1, region[i][2]};
+			vector<int> voisin5 = {region[i][0], region[i][1], region[i][2]-1};
+			vector<int> voisin6 = {region[i][0], region[i][1], region[i][2]+1};
+
+			vector< vector<int> > voisins = {voisin1, voisin2, voisin3, voisin4, voisin5, voisin6};
+
+			for(int j = 0; j < voisins.size(); j++)
+			{
+				if((*imgTrait)(voisins[j][0], voisins[j][1], voisins[j][2]) != 255)
+				{
+					int a = abs(imgInit(voisins[j][0], voisins[j][1], voisins[j][2]) - imgInit(seedPoint[0], seedPoint[1], seedPoint[2]));
+					int b = abs(imgInit(voisins[j][0], voisins[j][1], voisins[j][2]) - imgInit(region[i][0], region[i][1], region[i][2]));
+					
+					if(a <= *threshold && b <= 3)
+					{
+						region.push_back(voisins[j]);
+						(*imgTrait)(region[i][0], region[i][1], region[i][2]) = 255;
+					}
+				}
+			}
+		}
+		
+	}
+}
+
+/*void regionGrowing(CImg<> imgInit, CImg<>* imgTrait, vector<int> seedPoint, int* threshold)
+{
+	vector< vector<int> > region;
+	region.push_back(seedPoint);
+
+	for(int i = 0; i < region.size(); i++)
+	{
 		vector<int> voisin1 = {region[i][0]-1, region[i][1], region[i][2]};
 		vector<int> voisin2 = {region[i][0]+1, region[i][1], region[i][2]};
 		vector<int> voisin3 = {region[i][0], region[i][1]-1, region[i][2]};
@@ -106,6 +143,7 @@ void regionGrowing(CImg<> imgInit, CImg<>* imgTrait, vector<int> seedPoint, int*
 			if((*imgTrait)(voisins[j][0], voisins[j][1], voisins[j][2]) == 0)
 			{
 					float distance = (float) sqrt(pow((imgInit(voisins[j][0], voisins[j][1], voisins[j][2]) - imgInit(seedPoint[0], seedPoint[1], seedPoint[2])), 2)); //imgInit(region[i][0], region[i][1], region[i][2])), 2));
+					cout << distance << endl;
 					if(distance <= *threshold)
 					{
 						region.push_back(voisins[j]);
@@ -114,7 +152,7 @@ void regionGrowing(CImg<> imgInit, CImg<>* imgTrait, vector<int> seedPoint, int*
 			}
 		}
 	}
-}
+}*/
 
 void regionGrowingRec(CImg<> imgInit,CImg<>* labels,int* dim,int* seedPoint,int* threshold,int label){
   int i = seedPoint[0];
@@ -197,7 +235,7 @@ void firstContact(CImg<> imgInit, CImg<>* imgTrait, CImgDisplay* display,int* di
         clicX = (*display).mouse_x() * Cx;
         clicY = (*display).mouse_y() * Cy;
         clicZ = numeroImage;
-        //int seed[3] = {clicX, clicY, clicZ};
+        cout << imgInit(clicX, clicY, clicZ) << endl;
         vector<int> seed = {clicX, clicY, clicZ};
         regionGrowing(imgInit, imgTrait, seed,threshold);
         fprintf(stderr,"Fin du region growing\n");
@@ -272,7 +310,7 @@ while(!seuilFini)
 }
 	
   CopyImg(imgTrait,&imgInit,dim);
-  int threshold = 5;
+  int threshold = seuil;
 
   cout << "Veuillez cliquer sur la région à segmenter" << endl;
   firstContact(imgInit,&imgTrait,&display,dim,&threshold);
