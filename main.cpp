@@ -48,6 +48,19 @@ void remiseAZero(CImg<>* imgTrait, int* dim)
   }
 }
 
+void AuxFrontieresDuReel(CImg<> imgInit,CImg<>* boundaries, int* dim){
+  for(int i = 0; i < dim[0]; i++)
+  {
+    for(int j = 0; j < dim[1]; j++)
+    {
+      for(int k = 0; k < dim[2]; k++)
+      {
+        (*boundaries)(i,j,k) = ((imgInit)(i,j,k)!=0)?1:0;
+      }
+    }
+  }
+}
+
 void CopyImg(CImg<> imgInit, CImg<>* imgTrait, int* dim)
 {
   	int valMax = imgInit.max();
@@ -116,7 +129,39 @@ void regionGrowing(CImg<> imgInit, CImg<>* imgTrait, vector<int> seedPoint,int* 
 	}
 
 	cout << "fini" << endl;
-	//(*fini) = true;
+}
+
+void regionGrowingActualize(CImg<> imgInit, CImg<>* imgTrait, vector<int> seedPoint,int* threshold)
+{
+  vector< vector<int> > region;
+  region.push_back(seedPoint);
+
+  for(int i = 0; i < region.size(); i++)
+  {
+    vector<int> voisin1 = {region[i][0]-1, region[i][1], region[i][2]};
+    vector<int> voisin2 = {region[i][0]+1, region[i][1], region[i][2]};
+    vector<int> voisin3 = {region[i][0], region[i][1]-1, region[i][2]};
+    vector<int> voisin4 = {region[i][0], region[i][1]+1, region[i][2]};
+    vector<int> voisin5 = {region[i][0], region[i][1], region[i][2]-1};
+    vector<int> voisin6 = {region[i][0], region[i][1], region[i][2]+1};
+
+    vector< vector<int> > voisins = {voisin1, voisin2, voisin3, voisin4, voisin5, voisin6};
+
+    for(int j = 0; j < voisins.size(); j++)
+    {
+      if((*imgTrait)(voisins[j][0], voisins[j][1], voisins[j][2]) == 0)
+      {
+          //float distance = (float) sqrt(pow((imgInit(voisins[j][0], voisins[j][1], voisins[j][2]) - imgInit(seedPoint[0], seedPoint[1], seedPoint[2])), 2)); //imgInit(region[i][0], region[i][1], region[i][2])), 2));
+          if(distanceInt(imgInit(voisins[j][0], voisins[j][1], voisins[j][2]),imgInit(seedPoint[0], seedPoint[1], seedPoint[2])) <= *threshold)
+          {
+            region.push_back(voisins[j]);
+            (*imgTrait)(voisins[j][0], voisins[j][1], voisins[j][2]) = 255;
+          }
+      }
+    }
+  }
+
+  cout << "fini" << endl;
 }
 
 void regionGrowingRec(CImg<> imgInit,CImg<>* labels,int* dim,int* seedPoint,int* threshold,int label){
@@ -200,12 +245,58 @@ void firstContact(CImg<> imgInit, CImg<>* imgTrait, CImgDisplay* display,int* di
         clicX = (*display).mouse_x() * Cx;
         clicY = (*display).mouse_y() * Cy;
         clicZ = numeroImage;
-        //int seed[3] = {clicX, clicY, clicZ};
         vector<int> seed = {clicX, clicY, clicZ};
         regionGrowing(imgInit, imgTrait, seed,threshold);
         fprintf(stderr,"Fin du region growing\n");
-        //regionGrowingRec(imgInit, labels, dim,seed,threshold,1);
         return;
+      }
+      CImg<> imgAffiche = imgInit.get_slice(numeroImage);
+      (*display).display(imgAffiche);
+      (*display).wait();
+    }
+}
+
+void MainLoop(CImg<> imgInit, CImg<>* imgTrait, CImgDisplay* display,int* dim,int* threshold){
+  int numeroImage=dim[2]/2;
+  int clicX, clicY, clicZ;
+  float Cx = (float) dim[0] / (float) (*display).width();
+  float Cy = (float) dim[1] / (float) (*display).height();
+  CImgDisplay displayTrait(*imgTrait);
+  int oldTresh = *threshold;
+  while(!(*display).is_closed())
+  {   
+    bool anyChange = true;
+      if ((*display).is_keyESC())
+      {
+          break;
+      }
+    
+      if ((*display).wheel())
+      {
+          *threshold += (*display).wheel();
+          *threshold = clamp(*threshold,1,255);
+          (*display).set_wheel();
+      }
+      if ((*display).button()&1)
+      { 
+        fprintf(stderr,"Debut du region growing\n");
+        remiseAZero(imgTrait,dim);
+        clicX = (*display).mouse_x() * Cx;
+        clicY = (*display).mouse_y() * Cy;
+        clicZ = numeroImage;
+        vector<int> seed = {clicX, clicY, clicZ};
+        regionGrowing(imgInit, imgTrait, seed,threshold);
+        fprintf(stderr,"Fin du region growing\n");
+        return;
+      }
+      if((*display).is_keyA()){
+        ;
+      }
+      if(anyChange){
+        CImgList<unsigned int> faces3d;
+        CImgList<unsigned char> colors3d;
+        const CImg<float> points3d = (*imgTrait).get_isosurface3d(faces3d,100);
+        CImg<unsigned char>().display_object3d("Isosurface3d",points3d,faces3d,colors3d);
       }
       CImg<> imgAffiche = imgInit.get_slice(numeroImage);
       (*display).display(imgAffiche);
@@ -289,10 +380,6 @@ int main(int argc, char *argv[])
     //imgTrait.save_analyze("result.hdr", voxelsize);
 
     //const CImg<float> img = CImg<unsigned char>("reference.jpg").resize(-100,-100,20);
-	CImgList<unsigned int> faces3d;
-	CImgList<unsigned char> colors3d;
 
-	const CImg<float> points3d = imgTrait.get_isosurface3d(faces3d,100);
-	CImg<unsigned char>().display_object3d("Isosurface3d",points3d,faces3d,colors3d);
-
+  MainLoop(imgInit,&imgTrait,&display,dim,&threshold);
 }
