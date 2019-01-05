@@ -85,7 +85,7 @@ void pretraitement(CImg<> imgInit, CImg<>* imgTrait, CImgDisplay* display, int* 
   	}
 }
 
-void regionGrowing(CImg<> imgInit, CImg<>* imgTrait, vector<int> seedPoint,int* threshold)
+void regionGrowing(CImg<> imgInit, CImg<>* imgTrait, vector<int> seedPoint, int* threshold)
 {
 	vector< vector<int> > region;
 	region.push_back(seedPoint);
@@ -114,9 +114,6 @@ void regionGrowing(CImg<> imgInit, CImg<>* imgTrait, vector<int> seedPoint,int* 
 			}
 		}
 	}
-
-	cout << "fini" << endl;
-	//(*fini) = true;
 }
 
 void regionGrowingRec(CImg<> imgInit,CImg<>* labels,int* dim,int* seedPoint,int* threshold,int label){
@@ -237,13 +234,47 @@ int main(int argc, char *argv[])
   int seuil = 30;
  	int numeroImage=dim[2]/2;
 
-  pretraitement(imgInit,&imgTrait,&display,&seuil,dim);
-  fprintf(stderr, "Le filtre passe-haut est choisi à %d\n",seuil);
+ 	bool seuilFini = false;
+ 	bool sorti;
 
-  const unsigned char gray[] = {255};
+while(!seuilFini)
+{
+	cout << "Choisissez votre seuil avec la molette et appuyer sur S pour valider" << endl;
+  	pretraitement(imgInit,&imgTrait,&display,&seuil,dim);
+  	fprintf(stderr, "Le filtre passe-haut est choisi à %d\n",seuil);
+  	cout << "Êtes vous sûr de votre choix ? (o/n)" << endl;
 
+	for(sorti = false;!display.is_closed() && !sorti;)
+  	{
+  		if (display.wheel())
+    	{
+      		numeroImage += display.wheel();
+          	numeroImage = clamp(numeroImage,0,dim[2]);
+          	display.set_wheel();
+    	}
+
+    	CImg<> imgAffiche = imgTrait.get_slice(numeroImage);
+    	display.display(imgAffiche);
+    	display.wait();
+
+    	if(display.is_keyO()) 
+		{
+			sorti = true;
+			seuilFini = true;
+		}
+
+		if(display.is_keyN())
+		{
+			sorti = true;
+			seuilFini = false;
+		}
+  	}
+}
+	
   CopyImg(imgTrait,&imgInit,dim);
   int threshold = 5;
+
+  cout << "Veuillez cliquer sur la région à segmenter" << endl;
   firstContact(imgInit,&imgTrait,&display,dim,&threshold);
   //PaintWithLabels(imgInit,&imgTrait,labels,dim);
 
