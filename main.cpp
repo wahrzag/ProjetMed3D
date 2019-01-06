@@ -5,9 +5,6 @@
 using namespace cimg_library;
 using namespace std;
 
-#define NALDYDONE 0
-#define IGNORE -1
-
 float distanceInt(int p1,int p2){
   return (p1<p2)?p2-p1:p1-p2;
 }
@@ -43,19 +40,6 @@ void remiseAZero(CImg<>* imgTrait, int* dim)
       for(int k = 0; k < dim[2]; k++)
       {
         (*imgTrait)(i,j,k) = 0;
-      }
-    }
-  }
-}
-
-void AuxFrontieresDuReel(CImg<> imgInit,CImg<>* boundaries, int* dim){
-  for(int i = 0; i < dim[0]; i++)
-  {
-    for(int j = 0; j < dim[1]; j++)
-    {
-      for(int k = 0; k < dim[2]; k++)
-      {
-        (*boundaries)(i,j,k) = ((imgInit)(i,j,k)!=0)?1:0;
       }
     }
   }
@@ -132,103 +116,6 @@ void regionGrowing(CImg<> imgInit, CImg<>* imgTrait, vector<int> seedPoint,int* 
 		}
 		
 	}
-}
-
-bool gotVoidAsNeighbours(CImg<> img,int i,int j,int k,int* dim){
-      vector<int> voisin1 = {i-1, j, k};
-      vector<int> voisin2 = {i+1, j, k};
-      vector<int> voisin3 = {i, j-1, k};
-      vector<int> voisin4 = {i, j+1, k};
-      vector<int> voisin5 = {i, j, k-1};
-      vector<int> voisin6 = {i, j, k+1};
-
-      vector< vector<int> > voisins = {voisin1, voisin2, voisin3, voisin4, voisin5, voisin6};
-
-      for(int j = 0; j < voisins.size(); j++)
-      { 
-        if(voisins[j][0]<0 || voisins[j][1]<0 || voisins[j][2]<0) continue;
-        if(voisins[j][0]>dim[0]-1 || voisins[j][1]>dim[1]-1 || voisins[j][2]>dim[2]-1) continue;
-        if((img)(voisins[j][0], voisins[j][1], voisins[j][2]) != 255)
-        { 
-          return true;
-        }
-      }
-      return false;
-}
-
-void regionGrowingActualize(CImg<> imgInit, CImg<>* imgTrait,int* threshold,int* dim)
-{
-  vector< vector<int> > region;
-  for(int i = 0; i < dim[0]; i++)
-  {
-    for(int j = 0; j < dim[1]; j++)
-    {
-      for(int k = 0; k < dim[2]; k++)
-      {
-          if((*imgTrait)(i,j,k)==255 && gotVoidAsNeighbours(*imgTrait,i,j,k,dim)) region.push_back({i,j,k});
-      }
-    }
-  }
-  for(int i = 0; i < region.size(); i++){
-    vector<int> seed = {region[i][0],region[i][1],region[i][2]};
-    regionGrowing(imgInit, imgTrait, seed,threshold);
-  }
-}
-
-void regionGrowingRec(CImg<> imgInit,CImg<>* labels,int* dim,int* seedPoint,int* threshold,int label){
-  int i = seedPoint[0];
-  int j = seedPoint[1];
-  int k = seedPoint[2];
-  (*labels)(i,j,k) = label;
-  for(i=-1;i<=1;i++)
-  {
-    for(j=-1;j<=1;j++)
-    {
-      for(k=-1;k<=1;k++)
-      { 
-        bool todo = ((i>0)?i:-i + (j>0)?j:-j + (k>0)?k:-k) == 1;
-        if(todo && (*labels)(seedPoint[0]+i,seedPoint[1]+j,seedPoint[2]+k) == NALDYDONE && distanceInt(imgInit(seedPoint[0],seedPoint[1],seedPoint[2]),imgInit(seedPoint[0]+i,seedPoint[1]+j,seedPoint[2]+k))<*threshold){
-          int newSeed[3] = {seedPoint[0]+i,seedPoint[1]+j,seedPoint[2]+k};
-          regionGrowingRec(imgInit,labels,dim,newSeed,threshold,label);
-        }
-      }
-    }
-  }
-}
-
-void regionGrowingPreT(CImg<> imgInit,CImg<>* labels,int* dim){
-  for(int i = 0; i < dim[0]; i++)
-  {
-    for(int j = 0; j < dim[1]; j++)
-    {
-      for(int k = 0; k < dim[2]; k++)
-      {
-        if ((imgInit)(i,j,k) == 0) (*labels)(i,j,k)=IGNORE;
-        else{
-          (*labels)(i,j,k)=NALDYDONE;
-        } 
-      }
-    }
-  }
-}
-
-void PaintWithLabels(CImg<> imgInit,CImg<>* imgTrait,CImg<> labels,int* dim){
-  int count=0;
-  for(int i = 0; i < dim[0]; i++)
-  {
-    for(int j = 0; j < dim[1]; j++)
-    {
-      for(int k = 0; k < dim[2]; k++)
-      {
-        if (labels(i,j,k) >= 1){
-          (*imgTrait)(i,j,k)=imgInit(i,j,k);
-          count++;
-        }
-        else (*imgTrait)(i,j,k)=0;
-      }
-    }
-  }
-  fprintf(stderr,"nb voxels : %d\n",count);
 }
 
 void firstContact(CImg<> imgInit, CImg<>* imgTrait, CImgDisplay* display,int* dim,int* threshold,int* clicX,int* clicY,int* clicZ){
@@ -360,11 +247,10 @@ int main(int argc, char *argv[])
  	}
 
  	sscanf (argv[1],"%s",cfichierlu);
- 	CImg<> imgInit, imgTrait, labels;
+ 	CImg<> imgInit, imgTrait;
  	float voxelsize[3];
   imgInit.load_analyze(cfichierlu, voxelsize);
   imgTrait.load_analyze(cfichierlu, voxelsize);
-  labels.load_analyze(cfichierlu,voxelsize);
 
   int dim[] = {imgInit.width(),imgInit.height(),imgInit.depth()};
  	
@@ -372,9 +258,6 @@ int main(int argc, char *argv[])
 
   int seuil = 30;
  	int numeroImage=dim[2]/2;
-
-  /*pretraitement(imgInit,&imgTrait,&display,&seuil,dim);
-  fprintf(stderr, "Le filtre passe-haut est choisi à %d\n",seuil);*/
  	bool seuilFini = false;
  	bool sorti;
 
