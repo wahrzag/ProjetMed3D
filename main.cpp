@@ -98,70 +98,84 @@ void pretraitement(CImg<> imgInit, CImg<>* imgTrait, CImgDisplay* display, int* 
   	}
 }
 
-void regionGrowing(CImg<> imgInit, CImg<>* imgTrait, vector<int> seedPoint,int* threshold)
+void regionGrowing(CImg<> imgInit, CImg<>* imgTrait, vector<int> seedPoint,int* threshold,int* dim)
 {
 	vector< vector<int> > region;
 	region.push_back(seedPoint);
 
-	for(int i = 0; i < region.size(); i++)
-	{
-		vector<int> voisin1 = {region[i][0]-1, region[i][1], region[i][2]};
-		vector<int> voisin2 = {region[i][0]+1, region[i][1], region[i][2]};
-		vector<int> voisin3 = {region[i][0], region[i][1]-1, region[i][2]};
-		vector<int> voisin4 = {region[i][0], region[i][1]+1, region[i][2]};
-		vector<int> voisin5 = {region[i][0], region[i][1], region[i][2]-1};
-		vector<int> voisin6 = {region[i][0], region[i][1], region[i][2]+1};
-
-		vector< vector<int> > voisins = {voisin1, voisin2, voisin3, voisin4, voisin5, voisin6};
-
-		for(int j = 0; j < voisins.size(); j++)
-		{
-			if((*imgTrait)(voisins[j][0], voisins[j][1], voisins[j][2]) == 0)
-			{
-					float distance = (float) sqrt(pow((imgInit(voisins[j][0], voisins[j][1], voisins[j][2]) - imgInit(seedPoint[0], seedPoint[1], seedPoint[2])), 2)); //imgInit(region[i][0], region[i][1], region[i][2])), 2));
-					if(distance <= *threshold)
-					{
-						region.push_back(voisins[j]);
-						(*imgTrait)(voisins[j][0], voisins[j][1], voisins[j][2]) = 255;
-					}
-			}
-		}
-	}
-
-	cout << "fini" << endl;
-}
-
-void regionGrowingActualize(CImg<> imgInit, CImg<>* imgTrait, vector<int> seedPoint,int* threshold)
-{
-  vector< vector<int> > region;
-  region.push_back(seedPoint);
-
   for(int i = 0; i < region.size(); i++)
   {
-    vector<int> voisin1 = {region[i][0]-1, region[i][1], region[i][2]};
-    vector<int> voisin2 = {region[i][0]+1, region[i][1], region[i][2]};
-    vector<int> voisin3 = {region[i][0], region[i][1]-1, region[i][2]};
-    vector<int> voisin4 = {region[i][0], region[i][1]+1, region[i][2]};
-    vector<int> voisin5 = {region[i][0], region[i][1], region[i][2]-1};
-    vector<int> voisin6 = {region[i][0], region[i][1], region[i][2]+1};
-
-    vector< vector<int> > voisins = {voisin1, voisin2, voisin3, voisin4, voisin5, voisin6};
-
-    for(int j = 0; j < voisins.size(); j++)
+    if((*imgTrait)(region[i][0], region[i][1], region[i][2]) != 255)
     {
-      if((*imgTrait)(voisins[j][0], voisins[j][1], voisins[j][2]) == 0)
-      {
-          //float distance = (float) sqrt(pow((imgInit(voisins[j][0], voisins[j][1], voisins[j][2]) - imgInit(seedPoint[0], seedPoint[1], seedPoint[2])), 2)); //imgInit(region[i][0], region[i][1], region[i][2])), 2));
-          if(distanceInt(imgInit(voisins[j][0], voisins[j][1], voisins[j][2]),imgInit(seedPoint[0], seedPoint[1], seedPoint[2])) <= *threshold)
+      vector<int> voisin1 = {region[i][0]-1, region[i][1], region[i][2]};
+      vector<int> voisin2 = {region[i][0]+1, region[i][1], region[i][2]};
+      vector<int> voisin3 = {region[i][0], region[i][1]-1, region[i][2]};
+      vector<int> voisin4 = {region[i][0], region[i][1]+1, region[i][2]};
+      vector<int> voisin5 = {region[i][0], region[i][1], region[i][2]-1};
+      vector<int> voisin6 = {region[i][0], region[i][1], region[i][2]+1};
+
+      vector< vector<int> > voisins = {voisin1, voisin2, voisin3, voisin4, voisin5, voisin6};
+
+      for(int j = 0; j < voisins.size(); j++)
+      { 
+        if(voisins[j][0]<0 || voisins[j][1]<0 || voisins[j][2]<0) continue;
+        if(voisins[j][0]>dim[0]-1 || voisins[j][1]>dim[1]-1 || voisins[j][2]>dim[2]-1) continue;
+        if((*imgTrait)(voisins[j][0], voisins[j][1], voisins[j][2]) != 255)
+        { 
+          int a = abs(imgInit(voisins[j][0], voisins[j][1], voisins[j][2]) - imgInit(seedPoint[0], seedPoint[1], seedPoint[2]));
+          int b = abs(imgInit(voisins[j][0], voisins[j][1], voisins[j][2]) - imgInit(region[i][0], region[i][1], region[i][2]));
+
+          if(a <= *threshold && b <= *threshold/2)
           {
             region.push_back(voisins[j]);
-            (*imgTrait)(voisins[j][0], voisins[j][1], voisins[j][2]) = 255;
+            (*imgTrait)(region[i][0], region[i][1], region[i][2]) = 255;
           }
+        }
+      }
+    }
+
+  }
+}
+
+bool gotVoidAsNeighbours(CImg<> img,int i,int j,int k,int* dim){
+      vector<int> voisin1 = {i-1, j, k};
+      vector<int> voisin2 = {i+1, j, k};
+      vector<int> voisin3 = {i, j-1, k};
+      vector<int> voisin4 = {i, j+1, k};
+      vector<int> voisin5 = {i, j, k-1};
+      vector<int> voisin6 = {i, j, k+1};
+
+      vector< vector<int> > voisins = {voisin1, voisin2, voisin3, voisin4, voisin5, voisin6};
+
+      for(int j = 0; j < voisins.size(); j++)
+      { 
+        if(voisins[j][0]<0 || voisins[j][1]<0 || voisins[j][2]<0) continue;
+        if(voisins[j][0]>dim[0]-1 || voisins[j][1]>dim[1]-1 || voisins[j][2]>dim[2]-1) continue;
+        if((img)(voisins[j][0], voisins[j][1], voisins[j][2]) != 255)
+        { 
+          return true;
+        }
+      }
+      return false;
+}
+
+void regionGrowingActualize(CImg<> imgInit, CImg<>* imgTrait,int* threshold,int* dim)
+{
+  vector< vector<int> > region;
+  for(int i = 0; i < dim[0]; i++)
+  {
+    for(int j = 0; j < dim[1]; j++)
+    {
+      for(int k = 0; k < dim[2]; k++)
+      {
+          if((*imgTrait)(i,j,k)==255 && gotVoidAsNeighbours(*imgTrait,i,j,k,dim)) region.push_back({i,j,k});
       }
     }
   }
-
-  cout << "fini" << endl;
+  for(int i = 0; i < region.size(); i++){
+    vector<int> seed = {region[i][0],region[i][1],region[i][2]};
+    regionGrowing(imgInit, imgTrait, seed,threshold,dim);
+  }
 }
 
 void regionGrowingRec(CImg<> imgInit,CImg<>* labels,int* dim,int* seedPoint,int* threshold,int label){
@@ -220,10 +234,9 @@ void PaintWithLabels(CImg<> imgInit,CImg<>* imgTrait,CImg<> labels,int* dim){
   fprintf(stderr,"nb voxels : %d\n",count);
 }
 
-void firstContact(CImg<> imgInit, CImg<>* imgTrait, CImgDisplay* display,int* dim,int* threshold){
+void firstContact(CImg<> imgInit, CImg<>* imgTrait, CImgDisplay* display,int* dim,int* threshold,int* clicX,int* clicY,int* clicZ){
   remiseAZero(imgTrait,dim);
   int numeroImage=dim[2]/2;
-  int clicX, clicY, clicZ;
   float Cx = (float) dim[0] / (float) (*display).width();
   float Cy = (float) dim[1] / (float) (*display).height();
   while(!(*display).is_closed())
@@ -242,11 +255,11 @@ void firstContact(CImg<> imgInit, CImg<>* imgTrait, CImgDisplay* display,int* di
       if ((*display).button()&1)
       { 
         fprintf(stderr,"Debut du region growing\n");
-        clicX = (*display).mouse_x() * Cx;
-        clicY = (*display).mouse_y() * Cy;
-        clicZ = numeroImage;
-        vector<int> seed = {clicX, clicY, clicZ};
-        regionGrowing(imgInit, imgTrait, seed,threshold);
+        *clicX = (*display).mouse_x() * Cx;
+        *clicY = (*display).mouse_y() * Cy;
+        *clicZ = numeroImage;
+        vector<int> seed = {*clicX, *clicY, *clicZ};
+        regionGrowing(imgInit, imgTrait, seed,threshold,dim);
         fprintf(stderr,"Fin du region growing\n");
         return;
       }
@@ -256,50 +269,85 @@ void firstContact(CImg<> imgInit, CImg<>* imgTrait, CImgDisplay* display,int* di
     }
 }
 
-void MainLoop(CImg<> imgInit, CImg<>* imgTrait, CImgDisplay* display,int* dim,int* threshold){
+void MainLoop(CImg<> imgInit, CImg<>* imgTrait, CImgDisplay* display,int* dim,int* threshold,int* clicX,int* clicY,int* clicZ){
   int numeroImage=dim[2]/2;
-  int clicX, clicY, clicZ;
   float Cx = (float) dim[0] / (float) (*display).width();
   float Cy = (float) dim[1] / (float) (*display).height();
   CImgDisplay displayTrait(*imgTrait);
   int oldTresh = *threshold;
+  bool anyChange = true;
   while(!(*display).is_closed())
   {   
-    bool anyChange = true;
       if ((*display).is_keyESC())
       {
           break;
       }
-    
+      if((*display).is_keyU()){
+        numeroImage += 1;
+        numeroImage = clamp(numeroImage,0,dim[2]);
+        //fprintf(stderr,"z : %d\n",numeroImage);
+      }
+      if((*display).is_keyD()){
+        numeroImage -= 1;
+        numeroImage = clamp(numeroImage,0,dim[2]);
+        //fprintf(stderr,"z : %d\n",numeroImage);
+      }
       if ((*display).wheel())
       {
-          *threshold += (*display).wheel();
-          *threshold = clamp(*threshold,1,255);
-          (*display).set_wheel();
+        *threshold += (*display).wheel();
+        *threshold = clamp(*threshold,1,255);
+        (*display).set_wheel();
+        fprintf(stderr,"seuil d'acceptation : %d\n",*threshold);
       }
       if ((*display).button()&1)
       { 
-        fprintf(stderr,"Debut du region growing\n");
-        remiseAZero(imgTrait,dim);
-        clicX = (*display).mouse_x() * Cx;
-        clicY = (*display).mouse_y() * Cy;
-        clicZ = numeroImage;
-        vector<int> seed = {clicX, clicY, clicZ};
-        regionGrowing(imgInit, imgTrait, seed,threshold);
-        fprintf(stderr,"Fin du region growing\n");
-        return;
+        int nclicX = (*display).mouse_x() * Cx;
+        int nclicY = (*display).mouse_y() * Cy;
+        int nclicZ = numeroImage;
+        if((*imgTrait)(nclicX,nclicY,nclicZ) || !imgInit(nclicX,nclicY,nclicZ)){
+          if((*imgTrait)(nclicX,nclicY,nclicZ)) anyChange = true;
+        }
+        else{
+          fprintf(stderr,"Debut du region growing\n");
+          *clicX = nclicX;
+          *clicY = nclicY;
+          *clicZ = nclicZ;
+          remiseAZero(imgTrait,dim);
+          vector<int> seed = {*clicX, *clicY, *clicZ};
+          regionGrowing(imgInit, imgTrait, seed,threshold,dim);
+          fprintf(stderr,"Fin du region growing\n");
+          anyChange=true;
+        }
       }
       if((*display).is_keyA()){
-        ;
+        if(oldTresh<*threshold){
+          regionGrowingActualize(imgInit, imgTrait,threshold,dim);
+          anyChange=true;
+        } 
+        if(oldTresh>*threshold){
+          fprintf(stderr,"Debut du region growing\n");
+          remiseAZero(imgTrait,dim);
+          vector<int> seed = {*clicX, *clicY, *clicZ};
+          regionGrowing(imgInit, imgTrait, seed,threshold,dim);
+          fprintf(stderr,"Fin du region growing\n");
+          anyChange=true;
+        }
+        if(oldTresh==*threshold){
+          ;
+        }
+        oldTresh=*threshold;
       }
+      CImg<> imgAffiche2 = (*imgTrait).get_slice(numeroImage);
+      displayTrait.display(imgAffiche2);
+      CImg<> imgAffiche = imgInit.get_slice(numeroImage);
+      (*display).display(imgAffiche);
       if(anyChange){
         CImgList<unsigned int> faces3d;
         CImgList<unsigned char> colors3d;
         const CImg<float> points3d = (*imgTrait).get_isosurface3d(faces3d,100);
         CImg<unsigned char>().display_object3d("Isosurface3d",points3d,faces3d,colors3d);
+        anyChange = false;
       }
-      CImg<> imgAffiche = imgInit.get_slice(numeroImage);
-      (*display).display(imgAffiche);
       (*display).wait();
     }
 }
@@ -328,58 +376,49 @@ int main(int argc, char *argv[])
   int seuil = 30;
  	int numeroImage=dim[2]/2;
 
-  pretraitement(imgInit,&imgTrait,&display,&seuil,dim);
-  fprintf(stderr, "Le filtre passe-haut est choisi à %d\n",seuil);
+  /*pretraitement(imgInit,&imgTrait,&display,&seuil,dim);
+  fprintf(stderr, "Le filtre passe-haut est choisi à %d\n",seuil);*/
+ 	bool seuilFini = false;
+ 	bool sorti;
 
-  const unsigned char gray[] = {255};
+while(!seuilFini)
+{
+	cout << "Choisissez votre seuil avec la molette et appuyer sur S pour valider" << endl;
+  	pretraitement(imgInit,&imgTrait,&display,&seuil,dim);
+  	fprintf(stderr, "Le filtre passe-haut est choisi à %d\n",seuil);
+  	cout << "Êtes vous sûr de votre choix ? (o/n)" << endl;
 
-  CopyImg(imgTrait,&imgInit,dim);
-  int threshold = 5;
-  firstContact(imgInit,&imgTrait,&display,dim,&threshold);
-  //PaintWithLabels(imgInit,&imgTrait,labels,dim);
-
-  /*bool testFini = false;
-
- 	while(!display.is_closed())
- 	{
-    	if (display.is_keyESC())
-    	{
-      		break;
-    	}
-    
-    	if (display.wheel())
+	for(sorti = false;!display.is_closed() && !sorti;)
+  	{
+  		if (display.wheel())
     	{
       		numeroImage += display.wheel();
           	numeroImage = clamp(numeroImage,0,dim[2]);
           	display.set_wheel();
     	}
 
-      	if (display.button()&1)
-      	{
-	        clicX = display.mouse_x() * Cx;
-	        clicY = display.mouse_y() * Cy;
-	        clicZ = numeroImage;
-	        vector<int> seed = {clicX, clicY, clicZ};
-
-	        regionGrowing(imgInit, &imgTrait, seed, &testFini);
-      	}
-
-      	if(testFini)
-      	{
-      		imgAffiche = imgTrait.get_slice(numeroImage);
-      	}
-      	else
-      	{
-      		imgAffiche = imgInit.get_slice(numeroImage);
-      	}
-    	
+    	CImg<> imgAffiche = imgTrait.get_slice(numeroImage);
     	display.display(imgAffiche);
-  		display.wait();
-    }*/
+    	display.wait();
 
-    //imgTrait.save_analyze("result.hdr", voxelsize);
+    	if(display.is_keyO()) 
+		{
+			sorti = true;
+			seuilFini = true;
+		}
 
-    //const CImg<float> img = CImg<unsigned char>("reference.jpg").resize(-100,-100,20);
-
-  MainLoop(imgInit,&imgTrait,&display,dim,&threshold);
+		if(display.is_keyN())
+		{
+			sorti = true;
+			seuilFini = false;
+		}
+  	}
+}
+	
+  CopyImg(imgTrait,&imgInit,dim);
+  int threshold = 5;
+  int clicX,clicY,clicZ;
+  cout << "Veuillez cliquer sur la région à segmenter" << endl;
+  firstContact(imgInit,&imgTrait,&display,dim,&threshold,&clicX,&clicY,&clicZ);
+  MainLoop(imgInit,&imgTrait,&display,dim,&threshold,&clicX,&clicY,&clicZ);
 }
