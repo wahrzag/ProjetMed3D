@@ -98,7 +98,7 @@ void pretraitement(CImg<> imgInit, CImg<>* imgTrait, CImgDisplay* display, int* 
   	}
 }
 
-void regionGrowing(CImg<> imgInit, CImg<>* imgTrait, vector<int> seedPoint,int* threshold,int* dim)
+void regionGrowing(CImg<> imgInit, CImg<>* imgTrait, vector<int> seedPoint,int* threshold)
 {
 	vector< vector<int> > region;
 	region.push_back(seedPoint);
@@ -171,7 +171,7 @@ void regionGrowingActualize(CImg<> imgInit, CImg<>* imgTrait,int* threshold,int*
   }
   for(int i = 0; i < region.size(); i++){
     vector<int> seed = {region[i][0],region[i][1],region[i][2]};
-    regionGrowing(imgInit, imgTrait, seed,threshold,dim);
+    regionGrowing(imgInit, imgTrait, seed,threshold);
   }
 }
 
@@ -256,7 +256,7 @@ void firstContact(CImg<> imgInit, CImg<>* imgTrait, CImgDisplay* display,int* di
         *clicY = (*display).mouse_y() * Cy;
         *clicZ = numeroImage;
         vector<int> seed = {*clicX, *clicY, *clicZ};
-        regionGrowing(imgInit, imgTrait, seed,threshold,dim);
+        regionGrowing(imgInit, imgTrait, seed,threshold);
         fprintf(stderr,"Fin du region growing\n");
         return;
       }
@@ -273,6 +273,10 @@ void MainLoop(CImg<> imgInit, CImg<>* imgTrait, CImgDisplay* display,int* dim,in
   CImgDisplay displayTrait(*imgTrait);
   int oldTresh = *threshold;
   bool anyChange = true;
+  cout << "Si modification similarité entre voxels, fermez visualisation surfacique" << endl;
+  cout << "Appuyez sur U (monter) ou D (descendre) pour changer de coupe sur l'axe z" << endl;
+  cout << "Utiliser la molette pour changer la similarité" << endl;
+  cout << "Appuyez sur A pour valider" << endl;
   while(!(*display).is_closed())
   {   
       if ((*display).is_keyESC())
@@ -311,26 +315,22 @@ void MainLoop(CImg<> imgInit, CImg<>* imgTrait, CImgDisplay* display,int* dim,in
           *clicZ = nclicZ;
           remiseAZero(imgTrait,dim);
           vector<int> seed = {*clicX, *clicY, *clicZ};
-          regionGrowing(imgInit, imgTrait, seed,threshold,dim);
+          regionGrowing(imgInit, imgTrait, seed,threshold);
           fprintf(stderr,"Fin du region growing\n");
           anyChange=true;
         }
       }
       if((*display).is_keyA()){
-        if(oldTresh<*threshold){
-          regionGrowingActualize(imgInit, imgTrait,threshold,dim);
-          anyChange=true;
-        } 
-        if(oldTresh>*threshold){
-          fprintf(stderr,"Debut du region growing\n");
+        if(oldTresh != *threshold){
+        	fprintf(stderr,"Debut du region growing\n");
           remiseAZero(imgTrait,dim);
           vector<int> seed = {*clicX, *clicY, *clicZ};
-          regionGrowing(imgInit, imgTrait, seed,threshold,dim);
+          regionGrowing(imgInit, imgTrait, seed,threshold);
           fprintf(stderr,"Fin du region growing\n");
           anyChange=true;
-        }
+        } 
         if(oldTresh==*threshold){
-          ;
+          continue;
         }
         oldTresh=*threshold;
       }
