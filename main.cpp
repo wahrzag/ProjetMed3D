@@ -82,12 +82,12 @@ void pretraitement(CImg<> imgInit, CImg<>* imgTrait, CImgDisplay* display, int* 
   	}
 }
 
-void regionGrowing(CImg<> imgInit, CImg<>* imgTrait, vector<int> seedPoint,int* threshold)
+void regionGrowing(CImg<> imgInit, CImg<>* imgTrait, vector<int> seedPoint,int* threshold,int* dim)
 {
 	vector< vector<int> > region;
 	region.push_back(seedPoint);
 	for(int i = 0; i < region.size(); i++)
-	{
+	{  
 		if((*imgTrait)(region[i][0], region[i][1], region[i][2]) != 255)
 		{
 			vector<int> voisin1 = {region[i][0]-1, region[i][1], region[i][2]};
@@ -98,15 +98,16 @@ void regionGrowing(CImg<> imgInit, CImg<>* imgTrait, vector<int> seedPoint,int* 
 			vector<int> voisin6 = {region[i][0], region[i][1], region[i][2]+1};
 
 			vector< vector<int> > voisins = {voisin1, voisin2, voisin3, voisin4, voisin5, voisin6};
-
 			for(int j = 0; j < voisins.size(); j++)
-			{
+			{  
+        if(voisins[j][0]<0 || voisins[j][1]<0 || voisins[j][2]<0) continue;
+        if(voisins[j][0]>dim[0]-1 || voisins[j][1]>dim[1]-1 || voisins[j][2]>dim[2]-1) continue;
 				if((*imgTrait)(voisins[j][0], voisins[j][1], voisins[j][2]) != 255)
 				{
 					int a = abs(imgInit(voisins[j][0], voisins[j][1], voisins[j][2]) - imgInit(seedPoint[0], seedPoint[1], seedPoint[2]));
 					int b = abs(imgInit(voisins[j][0], voisins[j][1], voisins[j][2]) - imgInit(region[i][0], region[i][1], region[i][2]));
 					
-					if(a <= *threshold && b <= 3)
+					if(a <= *threshold*2 && b <= *threshold)
 					{
 						region.push_back(voisins[j]);
 						(*imgTrait)(region[i][0], region[i][1], region[i][2]) = 255;
@@ -143,7 +144,7 @@ void firstContact(CImg<> imgInit, CImg<>* imgTrait, CImgDisplay* display,int* di
         *clicY = (*display).mouse_y() * Cy;
         *clicZ = numeroImage;
         vector<int> seed = {*clicX, *clicY, *clicZ};
-        regionGrowing(imgInit, imgTrait, seed,threshold);
+        regionGrowing(imgInit, imgTrait, seed,threshold,dim);
         fprintf(stderr,"Fin du region growing\n");
         return;
       }
@@ -202,7 +203,7 @@ void MainLoop(CImg<> imgInit, CImg<>* imgTrait, CImgDisplay* display,int* dim,in
           *clicZ = nclicZ;
           remiseAZero(imgTrait,dim);
           vector<int> seed = {*clicX, *clicY, *clicZ};
-          regionGrowing(imgInit, imgTrait, seed,threshold);
+          regionGrowing(imgInit, imgTrait, seed,threshold,dim);
           fprintf(stderr,"Fin du region growing\n");
           anyChange=true;
         }
@@ -212,7 +213,7 @@ void MainLoop(CImg<> imgInit, CImg<>* imgTrait, CImgDisplay* display,int* dim,in
         	fprintf(stderr,"Debut du region growing\n");
           remiseAZero(imgTrait,dim);
           vector<int> seed = {*clicX, *clicY, *clicZ};
-          regionGrowing(imgInit, imgTrait, seed,threshold);
+          regionGrowing(imgInit, imgTrait, seed,threshold,dim);
           fprintf(stderr,"Fin du region growing\n");
           anyChange=true;
         } 
